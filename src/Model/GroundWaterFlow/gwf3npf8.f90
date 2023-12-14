@@ -16,6 +16,7 @@ module GwfNpfModule
   use Xt3dModule, only: Xt3dType
   use InputOutputModule, only: GetUnit, openfile
   use TvkModule, only: TvkType, tvk_cr
+  use GwfUzrModule, only: GwfUzrType, uzr_cr
   use MemoryManagerModule, only: mem_allocate, mem_reallocate, &
                                  mem_deallocate, mem_setptr, &
                                  mem_reassignptr
@@ -103,7 +104,9 @@ module GwfNpfModule
     integer(I4B), pointer :: kchangeper => null() ! last stress period in which any node K (or K22, or K33) values were changed (0 if unchanged from start of simulation)
     integer(I4B), pointer :: kchangestp => null() ! last time step in which any node K (or K22, or K33) values were changed (0 if unchanged from start of simulation)
     integer(I4B), dimension(:), pointer, contiguous :: nodekchange => null() ! grid array of flags indicating for each node whether its K (or K22, or K33) value changed (1) at (kchangeper, kchangestp) or not (0)
-
+    integer(I4B), pointer :: inuzr => null() ! UZR (unsat richards) unit number (0 if unused)
+    type(GwfUzrType), pointer :: uzr => null() ! UZR object
+    
   contains
 
     procedure :: npf_df
@@ -353,6 +356,11 @@ contains
     ! -- TVK
     if (this%intvk /= 0) then
       call this%tvk%ar(this%dis)
+    end if
+    !
+    ! -- UZR
+    if (this%inuzr /= 0) then
+      call this%uzr%ar(this%dis)
     end if
     !
     ! -- Return
@@ -1050,6 +1058,7 @@ contains
     call mem_deallocate(this%ik22overk)
     call mem_deallocate(this%ik33overk)
     call mem_deallocate(this%intvk)
+    call mem_deallocate(this%inuzr)
     call mem_deallocate(this%invsc)
     call mem_deallocate(this%kchangeper)
     call mem_deallocate(this%kchangestp)
@@ -1131,6 +1140,7 @@ contains
     call mem_allocate(this%nedges, 'NEDGES', this%memoryPath)
     call mem_allocate(this%lastedge, 'LASTEDGE', this%memoryPath)
     call mem_allocate(this%intvk, 'INTVK', this%memoryPath)
+    call mem_allocate(this%intvk, 'INTVK', this%memoryPath)
     call mem_allocate(this%invsc, 'INVSC', this%memoryPath)
     call mem_allocate(this%kchangeper, 'KCHANGEPER', this%memoryPath)
     call mem_allocate(this%kchangestp, 'KCHANGESTP', this%memoryPath)
@@ -1173,6 +1183,7 @@ contains
     this%nedges = 0
     this%lastedge = 0
     this%intvk = 0
+    this%inuzr = 0
     this%invsc = 0
     this%kchangeper = 0
     this%kchangestp = 0
@@ -1375,6 +1386,7 @@ contains
       &[character(len=LENVARNAME) :: 'LOGARITHMIC', 'AMT-LMK', 'AMT-HMK']
     type(GwfNpfParamFoundType) :: found
     character(len=LINELENGTH) :: tvk6_filename
+    character(len=LINELENGTH) :: uzr6_filename
     !
     ! -- update defaults with idm sourced values
     call mem_set_value(this%iprflow, 'IPRFLOW', this%input_mempath, found%iprflow)
@@ -1435,6 +1447,13 @@ contains
     ! -- log options
     if (this%iout > 0) then
       call this%log_options(found)
+    end if
+    !
+    ! -- enforce 0 or 1 UZR6_FILENAME entries in option block
+    if (filein_fname(uzr6_filename, 'UZR6_FILENAME', this%input_mempath, &
+                     this%input_fname)) then
+      call openfile(this%inuzr, this%iout, uzr6_filename, 'UZR')
+      call uzr_cr(this%uzr, this%name_model, this%inuzr, this%iout)
     end if
     !
     ! -- Return

@@ -35,6 +35,9 @@ module GwfNpfInputModule
     logical :: tvk6 = .false.
     logical :: filein = .false.
     logical :: tvk6_filename = .false.
+    logical :: uzr_filerecord = .false.
+    logical :: uzr6 = .false.
+    logical :: uzr6_filename = .false.
     logical :: inewton = .false.
     logical :: iusgnrhc = .false.
     logical :: inwtupw = .false.
@@ -461,6 +464,57 @@ module GwfNpfInputModule
     )
 
   type(InputParamDefinitionType), parameter :: &
+    gwfnpf_uzr_filerecord = InputParamDefinitionType &
+    ( &
+    'GWF', & ! component
+    'NPF', & ! subcomponent
+    'OPTIONS', & ! block
+    'UZR_FILERECORD', & ! tag name
+    'UZR_FILERECORD', & ! fortran variable
+    'RECORD UZR6 FILEIN UZR6_FILENAME', & ! type
+    '', & ! shape
+    .false., & ! required
+    .false., & ! multi-record
+    .false., & ! preserve case
+    .false., & ! layered
+    .false. & ! timeseries
+    )
+
+  type(InputParamDefinitionType), parameter :: &
+    gwfnpf_uzr6 = InputParamDefinitionType &
+    ( &
+    'GWF', & ! component
+    'NPF', & ! subcomponent
+    'OPTIONS', & ! block
+    'UZR6', & ! tag name
+    'UZR6', & ! fortran variable
+    'KEYWORD', & ! type
+    '', & ! shape
+    .true., & ! required
+    .true., & ! multi-record
+    .false., & ! preserve case
+    .false., & ! layered
+    .false. & ! timeseries
+    )
+
+  type(InputParamDefinitionType), parameter :: &
+    gwfnpf_uzr6_filename = InputParamDefinitionType &
+    ( &
+    'GWF', & ! component
+    'NPF', & ! subcomponent
+    'OPTIONS', & ! block
+    'UZR6_FILENAME', & ! tag name
+    'UZR6_FILENAME', & ! fortran variable
+    'STRING', & ! type
+    '', & ! shape
+    .true., & ! required
+    .true., & ! multi-record
+    .true., & ! preserve case
+    .false., & ! layered
+    .false. & ! timeseries
+    )
+
+  type(InputParamDefinitionType), parameter :: &
     gwfnpf_inewton = InputParamDefinitionType &
     ( &
     'GWF', & ! component
@@ -708,6 +762,9 @@ module GwfNpfInputModule
     gwfnpf_tvk6, &
     gwfnpf_filein, &
     gwfnpf_tvk6_filename, &
+    gwfnpf_uzr_filerecord, &
+    gwfnpf_uzr6, &
+    gwfnpf_uzr6_filename, &
     gwfnpf_inewton, &
     gwfnpf_iusgnrhc, &
     gwfnpf_inwtupw, &

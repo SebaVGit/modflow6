@@ -224,6 +224,38 @@ tagged false
 longname file name of TVK information
 description defines a time-varying hydraulic conductivity (TVK) input file.  Records in the TVK file can be used to change hydraulic conductivity properties at specified times or stress periods.
 
+block options
+name uzr_filerecord
+type record uzr6 filein uzr6_filename
+shape
+reader urword
+tagged true
+optional true
+longname
+description
+
+block options
+name uzr6
+type keyword
+shape
+in_record true
+reader urword
+tagged true
+optional false
+longname uzr keyword
+description keyword to specify that record corresponds to a unsaturated zone Richards (UZR) file.  The behavior of UZR and a description of the input file is provided separately.
+
+block options
+name uzr6_filename
+type string
+preserve_case true
+in_record true
+reader urword
+optional false
+tagged false
+longname file name of UZR information
+description defines a unsaturated zone Richards (UZR) input file.
+
 # dev options
 
 block options
