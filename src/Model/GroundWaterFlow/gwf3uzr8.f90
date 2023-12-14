@@ -2,6 +2,7 @@ module GwfUzrModule
 
   use KindModule, only: I4B, DP
   use NumericalPackageModule, only: NumericalPackageType
+  use BaseDisModule, only: DisBaseType
 
   implicit none
 
@@ -43,7 +44,7 @@ module GwfUzrModule
     uzr%iout = iout
     call uzr%parser%Initialize(uzr%inunit, uzr%iout)
 
-    call this%allocate_scalars()
+    call uzr%allocate_scalars()
     !
     return
   end subroutine uzr_cr
