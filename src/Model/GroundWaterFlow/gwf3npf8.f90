@@ -16,7 +16,7 @@ module GwfNpfModule
   use Xt3dModule, only: Xt3dType
   use InputOutputModule, only: GetUnit, openfile
   use TvkModule, only: TvkType, tvk_cr
-  use GwfUzrModule, only: GwfUzrType, uzr_cr
+  use GwfUzrModule, only: UzrType, uzr_cr
   use MemoryManagerModule, only: mem_allocate, mem_reallocate, &
                                  mem_deallocate, mem_setptr, &
                                  mem_reassignptr
@@ -105,7 +105,7 @@ module GwfNpfModule
     integer(I4B), pointer :: kchangestp => null() ! last time step in which any node K (or K22, or K33) values were changed (0 if unchanged from start of simulation)
     integer(I4B), dimension(:), pointer, contiguous :: nodekchange => null() ! grid array of flags indicating for each node whether its K (or K22, or K33) value changed (1) at (kchangeper, kchangestp) or not (0)
     integer(I4B), pointer :: inuzr => null() ! UZR (unsat richards) unit number (0 if unused)
-    type(GwfUzrType), pointer :: uzr => null() ! UZR object
+    type(UzrType), pointer :: uzr => null() ! UZR object
     
   contains
 
