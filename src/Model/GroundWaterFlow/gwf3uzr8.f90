@@ -187,19 +187,19 @@ module GwfUzrModule
         call this%parser%GetRemainingLine(line)
         lloc = 1
         select case (keyword)
-        case ('ICONVERT')
+        case ('uzr_alpha')
           call this%dis%read_grid_array(line, lloc, istart, istop, this%iout, &
-                                        this%parser%iuactive, this%iconvert, &
+                                        this%parser%iuactive, this%uzr_alpha, &
                                         aname(1))
           readiconv = .true.
-        case ('SS')
+        case ('uzr_beta')
           call this%dis%read_grid_array(line, lloc, istart, istop, this%iout, &
-                                        this%parser%iuactive, this%ss, &
+                                        this%parser%iuactive, this%uzr_beta, &
                                         aname(2))
           readss = .true.
-        case ('SY')
+        case ('uzr_sr')
           call this%dis%read_grid_array(line, lloc, istart, istop, this%iout, &
-                                        this%parser%iuactive, this%sy, &
+                                        this%parser%iuactive, this%uzr_sr, &
                                         aname(3))
           readsy = .true.
         case default
@@ -216,20 +216,11 @@ module GwfUzrModule
       call this%parser%StoreErrorUnit()
     end if
     !
-    ! -- Check for ICONVERT
-    if (.not. readiconv) then
+    ! -- Check for uzr_
+    if (.not. read_uzr_alpha) then
       write (errmsg, '(a, a, a)') 'Error in GRIDDATA block: ', &
         trim(adjustl(aname(1))), ' not found.'
       call store_error(errmsg)
-    else
-      isconv = .false.
-      do n = 1, this%dis%nodes
-        if (this%iconvert(n) /= 0) then
-          isconv = .true.
-          this%iusesy = 1
-          exit
-        end if
-      end do
     end if
     !
     ! -- Check for SS
