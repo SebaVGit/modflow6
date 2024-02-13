@@ -137,7 +137,7 @@ module GwfUzrModule
     ! -- return
     logical :: success
     !
-    ! -- There are no TVK-specific options, so just return false
+    ! -- There are no UZR-specific options, so just return false
     success = .false.
     !
     ! -- Return
@@ -162,7 +162,7 @@ module GwfUzrModule
     logical :: read_uzr_alpha
     logical :: read_uzr_beta
     logical :: read_uzr_sr
-    character(len=24), dimension(4) :: aname
+    character(len=24), dimension(3) :: aname
     integer(I4B) :: n
     ! -- formats
     !data
@@ -216,22 +216,22 @@ module GwfUzrModule
       call this%parser%StoreErrorUnit()
     end if
     !
-    ! -- Check for uzr_
+    ! -- Check for uzr_alpha
     if (.not. read_uzr_alpha) then
       write (errmsg, '(a, a, a)') 'Error in GRIDDATA block: ', &
         trim(adjustl(aname(1))), ' not found.'
       call store_error(errmsg)
     end if
     !
-    ! -- Check for SS
-    if (.not. readss) then
+    ! -- Check for read_uzr_beta
+    if (.not. read_uzr_beta) then
       write (errmsg, '(a, a, a)') 'Error in GRIDDATA block: ', &
         trim(adjustl(aname(2))), ' not found.'
       call store_error(errmsg)
     end if
     !
-    ! -- Check for SY
-    if (.not. readsy .and. isconv) then
+    ! -- Check for read_uzr_sr
+    if (.not. read_uzr_sr) then
       write (errmsg, '(a, a, a)') 'Error in GRIDDATA block: ', &
         trim(adjustl(aname(3))), ' not found.'
       call store_error(errmsg)
@@ -243,22 +243,27 @@ module GwfUzrModule
     !
     ! -- Check SS and SY for negative values
     do n = 1, this%dis%nodes
-      if (this%ss(n) < DZERO) then
+      if (this%uzr_alpha(n) < DZERO) then
         call this%dis%noder_to_string(n, cellstr)
         write (errmsg, '(a,2(1x,a),1x,g0,1x,a)') &
-          'Error in SS DATA: SS value in cell', trim(adjustl(cellstr)), &
+          'Error in Richards Alpha DATA: Alpha value in cell', trim(adjustl(cellstr)), &
           'is less than zero (', this%ss(n), ').'
         call store_error(errmsg)
       end if
-      if (readsy) then
-        if (this%sy(n) < DZERO) then
-          call this%dis%noder_to_string(n, cellstr)
-          write (errmsg, '(a,2(1x,a),1x,g0,1x,a)') &
-            'Error in SY DATA: SY value in cell', trim(adjustl(cellstr)), &
+      if (this%uzr_beta(n) < DZERO) then
+        call this%dis%noder_to_string(n, cellstr)
+        write (errmsg, '(a,2(1x,a),1x,g0,1x,a)') &
+            'Error in Richards Beta DATA: Beta value in cell', trim(adjustl(cellstr)), &
             'is less than zero (', this%sy(n), ').'
-          call store_error(errmsg)
-        end if
+        call store_error(errmsg)
       end if
+     if (this%uzr_sr(n) < DZERO) then
+        call this%dis%noder_to_string(n, cellstr)
+        write (errmsg, '(a,2(1x,a),1x,g0,1x,a)') &
+            'Error in Richards Sr DATA: Sr value in cell', trim(adjustl(cellstr)), &
+            'is less than zero (', this%sy(n), ').'
+        call store_error(errmsg)
+     end if
     end do
     !
     ! -- return
