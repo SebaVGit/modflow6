@@ -8,6 +8,7 @@ module GwfUzrModule
   use MemoryHelperModule, only: create_mem_path
   use SimModule, only: store_error
   use SimVariablesModule, only: errmsg
+  use TvBaseModule, only: tvbase_da
 
   implicit none
 
@@ -27,14 +28,13 @@ module GwfUzrModule
 
   contains
     procedure :: allocate_scalars
+    procedure :: allocate_arrays
+    procedure :: uzr_cr
     procedure :: ar
     procedure :: da => uzr_da
-    procedure :: ar_set_pointers => uzr_ar_set_pointers
     procedure :: read_option => uzr_read_option
-    procedure :: get_pointer_to_value => uzr_get_pointer_to_value
-    procedure :: set_changed_at => uzr_set_changed_at
-    procedure :: reset_change_flags => uzr_reset_change_flags
-    procedure :: validate_change => uzr_validate_change
+    procedure :: read_data
+    
 
   end type UzrType
 
@@ -102,8 +102,14 @@ module GwfUzrModule
     call mem_allocate(this%uzr_sr, nodes, 'Richards Sr', this%memoryPath)
     !call mem_allocate(this%uzr_alpha, nodes, 'Richards Alpha', this%memoryPath)
     !
-    ! -- Initialize arrays
-    this%iss = 0
+    ! -- In case of using Brooks and Corey for relative permability
+    if (this%imethod /= 0) then
+      call mem_allocate(this%uzr_brooks_n, nodes, 'Richards N (Brooks. C)', this%memoryPath)
+      do n = 1, nodes
+      this%uzr_brooks_n(n) = DZERO
+      end do
+    end if
+    
     do n = 1, nodes
       this%uzr_alpha(n) = DZERO
       this%uzr_beta(n) = DZERO
@@ -162,19 +168,21 @@ module GwfUzrModule
     logical :: read_uzr_alpha
     logical :: read_uzr_beta
     logical :: read_uzr_sr
-    character(len=24), dimension(3) :: aname
+    character(len=24), dimension(4) :: aname
     integer(I4B) :: n
     ! -- formats
     !data
     data aname(1)/'          Richards Alpha'/
     data aname(2)/'           Richards Beta'/
     data aname(3)/'             Richards Sr'/
+    data aname(4)/'  Richards N (Brooks. C)'/
     !
     ! -- initialize
     isfound = .false.
     read_uzr_alpha = .false.
     read_uzr_beta = .false.
     read_uzr_sr = .false.
+    read_uzr_brooks_n = .false.
     !
     ! -- get stodata block
     call this%parser%GetBlock('GRIDDATA', isfound, ierr)
@@ -241,7 +249,7 @@ module GwfUzrModule
       call this%parser%StoreErrorUnit()
     end if
     !
-    ! -- Check SS and SY for negative values
+    ! -- Check for negative values of the variables
     do n = 1, this%dis%nodes
       if (this%uzr_alpha(n) < DZERO) then
         call this%dis%noder_to_string(n, cellstr)
@@ -265,10 +273,86 @@ module GwfUzrModule
         call store_error(errmsg)
      end if
     end do
+    end if
+    
+    ! -- In case of using Brooks and Corey for relative permability
+    if (this%imethod /= 0) then
+    call this%parser%GetBlock('GRIDDATA', isfound, ierr)
+    if (isfound) then
+      write (this%iout, '(1x,a)') 'PROCESSING GRIDDATA'
+      do
+        call this%parser%GetNextLine(endOfBlock)
+        if (endOfBlock) exit
+        call this%parser%GetStringCaps(keyword)
+        call this%parser%GetRemainingLine(line)
+        lloc = 1
+        select case (keyword)
+        case ('uzr_brooks_n')
+          call this%dis%read_grid_array(line, lloc, istart, istop, this%iout, &
+                                        this%parser%iuactive, this%uzr_brooks_n, &
+                                        aname(4))
+          readiconv = .true.
+        case default
+          write (errmsg, '(a,a)') 'Unknown GRIDDATA tag: ', &
+            trim(keyword)
+          call store_error(errmsg)
+          call this%parser%StoreErrorUnit()
+        end select
+      end do
+      write (this%iout, '(1x,a)') 'END PROCESSING GRIDDATA'
+    else
+      write (errmsg, '(a)') 'Required GRIDDATA block not found.'
+      call store_error(errmsg)
+      call this%parser%StoreErrorUnit()
+    end if
     !
+    ! -- Check for uzr_brooks_n
+    if (.not. read_uzr_alpha) then
+      write (errmsg, '(a, a, a)') 'Error in GRIDDATA block: ', &
+        trim(adjustl(aname(4))), ' not found.'
+      call store_error(errmsg)
+    end if
+    !
+    if (count_errors() > 0) then
+      call this%parser%StoreErrorUnit()
+    end if
+    !
+    ! -- Check for negative values of the variables
+    do n = 1, this%dis%nodes
+      if (this%uzr_brooks_n(n) < DZERO) then
+        call this%dis%noder_to_string(n, cellstr)
+        write (errmsg, '(a,2(1x,a),1x,g0,1x,a)') &
+          'Error in Richards N (Brooks C.) DATA: Alpha value in cell', trim(adjustl(cellstr)), &
+          'is less than zero (', this%ss(n), ').'
+        call store_error(errmsg)
+      end if
+    end do
     ! -- return
     return
   end subroutine read_data
-  
+
+  !> @brief Deallocate package memory
+  !!
+  !! Deallocate TVK package scalars and arrays.
+  !<
+  subroutine uzr_da(this)
+    ! -- dummy
+    class(UzrType) :: this
+    !
+    ! -- Nullify pointers to other package variables
+    nullify (this%imethod)
+    nullify (this%uzr_alpha)
+    nullify (this%uzr_beta)
+    nullify (this%uzr_sr)
+    if (this%imethod /= 0) then
+      nullify (this%uzr_brooks_n)
+    end if
+    ! -- Deallocate parent
+    call tvbase_da(this)
+    !
+    ! -- Return
+    return
+  end subroutine uzr_da
+
 
 end module GwfUzrModule
