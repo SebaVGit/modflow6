@@ -47,7 +47,7 @@ module GwfUzrModule
   !<
   subroutine uzr_cr(uzr, name_model, inunit, iout)
     ! -- dummy variables
-    type(UzrType), pointer, intent(out) :: uzr
+    type(UzrType), pointer :: uzr
     character(len=*), intent(in) :: name_model
     integer(I4B), intent(in) :: inunit
     integer(I4B), intent(in) :: iout
