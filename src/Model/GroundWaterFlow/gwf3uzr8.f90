@@ -9,6 +9,7 @@ module GwfUzrModule
   use SimModule, only: store_error
   use SimVariablesModule, only: errmsg
   use TvBaseModule, only: tvbase_da
+  use SimModule, only: store_error, count_errors
 
   implicit none
 
@@ -47,7 +48,7 @@ module GwfUzrModule
   !<
   subroutine uzr_cr(uzr, name_model, inunit, iout)
     ! -- dummy variables
-    type(UzrType), pointer :: uzr
+    type(UzrType), pointer, intent(out) :: uzr
     character(len=*), intent(in) :: name_model
     integer(I4B), intent(in) :: inunit
     integer(I4B), intent(in) :: iout
@@ -168,6 +169,7 @@ module GwfUzrModule
     logical :: read_uzr_alpha
     logical :: read_uzr_beta
     logical :: read_uzr_sr
+    logical :: read_uzr_brooks_n
     character(len=24), dimension(4) :: aname
     integer(I4B) :: n
     ! -- formats
@@ -199,17 +201,17 @@ module GwfUzrModule
           call this%dis%read_grid_array(line, lloc, istart, istop, this%iout, &
                                         this%parser%iuactive, this%uzr_alpha, &
                                         aname(1))
-          readiconv = .true.
+          read_uzr_alpha = .true.
         case ('uzr_beta')
           call this%dis%read_grid_array(line, lloc, istart, istop, this%iout, &
                                         this%parser%iuactive, this%uzr_beta, &
                                         aname(2))
-          readss = .true.
+          read_uzr_beta = .true.
         case ('uzr_sr')
           call this%dis%read_grid_array(line, lloc, istart, istop, this%iout, &
                                         this%parser%iuactive, this%uzr_sr, &
                                         aname(3))
-          readsy = .true.
+          read_uzr_sr = .true.
         case default
           write (errmsg, '(a,a)') 'Unknown GRIDDATA tag: ', &
             trim(keyword)
@@ -255,25 +257,24 @@ module GwfUzrModule
         call this%dis%noder_to_string(n, cellstr)
         write (errmsg, '(a,2(1x,a),1x,g0,1x,a)') &
           'Error in Richards Alpha DATA: Alpha value in cell', trim(adjustl(cellstr)), &
-          'is less than zero (', this%ss(n), ').'
+          'is less than zero (', this%uzr_alpha(n), ').'
         call store_error(errmsg)
       end if
       if (this%uzr_beta(n) < DZERO) then
         call this%dis%noder_to_string(n, cellstr)
         write (errmsg, '(a,2(1x,a),1x,g0,1x,a)') &
             'Error in Richards Beta DATA: Beta value in cell', trim(adjustl(cellstr)), &
-            'is less than zero (', this%sy(n), ').'
+            'is less than zero (', this%uzr_beta(n), ').'
         call store_error(errmsg)
       end if
      if (this%uzr_sr(n) < DZERO) then
         call this%dis%noder_to_string(n, cellstr)
         write (errmsg, '(a,2(1x,a),1x,g0,1x,a)') &
             'Error in Richards Sr DATA: Sr value in cell', trim(adjustl(cellstr)), &
-            'is less than zero (', this%sy(n), ').'
+            'is less than zero (', this%uzr_sr(n), ').'
         call store_error(errmsg)
      end if
     end do
-    end if
     
     ! -- In case of using Brooks and Corey for relative permability
     if (this%imethod /= 0) then
@@ -291,7 +292,7 @@ module GwfUzrModule
           call this%dis%read_grid_array(line, lloc, istart, istop, this%iout, &
                                         this%parser%iuactive, this%uzr_brooks_n, &
                                         aname(4))
-          readiconv = .true.
+          read_uzr_brooks_n = .true.
         case default
           write (errmsg, '(a,a)') 'Unknown GRIDDATA tag: ', &
             trim(keyword)
@@ -307,7 +308,7 @@ module GwfUzrModule
     end if
     !
     ! -- Check for uzr_brooks_n
-    if (.not. read_uzr_alpha) then
+    if (.not. read_uzr_brooks_n) then
       write (errmsg, '(a, a, a)') 'Error in GRIDDATA block: ', &
         trim(adjustl(aname(4))), ' not found.'
       call store_error(errmsg)
@@ -323,10 +324,11 @@ module GwfUzrModule
         call this%dis%noder_to_string(n, cellstr)
         write (errmsg, '(a,2(1x,a),1x,g0,1x,a)') &
           'Error in Richards N (Brooks C.) DATA: Alpha value in cell', trim(adjustl(cellstr)), &
-          'is less than zero (', this%ss(n), ').'
+          'is less than zero (', this%uzr_brooks_n(n), ').'
         call store_error(errmsg)
       end if
     end do
+    end if
     ! -- return
     return
   end subroutine read_data
