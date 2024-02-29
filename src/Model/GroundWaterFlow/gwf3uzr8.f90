@@ -33,7 +33,7 @@ module GwfUzrModule
     procedure :: uzr_cr
     procedure :: ar
     procedure :: da => uzr_da
-    procedure :: read_option => uzr_read_option
+    procedure :: read_options => uzr_read_options
     procedure :: read_data
     
 
@@ -137,7 +137,7 @@ module GwfUzrModule
 
   end subroutine ar
   
-  function uzr_read_option(this, keyword) result(success)
+  subroutine uzr_read_options(this, keyword) result(success)
     ! -- dummy
     class(UzrType) :: this
     character(len=*), intent(in) :: keyword
@@ -149,7 +149,7 @@ module GwfUzrModule
     !
     ! -- Return
     return
-  end function uzr_read_option
+  end subroutine uzr_read_options
   
   !> @ brief Read data for package
   !!
