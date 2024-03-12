@@ -4,7 +4,7 @@ module GwfUzrModule
   use BaseDisModule, only: DisBaseType
   use ConstantsModule, only: LINELENGTH, LENMEMPATH, DZERO
   use KindModule, only: I4B, DP
-  use MemoryManagerModule, only: mem_setptr
+  use MemoryManagerModule, only: mem_setptr, mem_allocate
   use MemoryHelperModule, only: create_mem_path
   use SimModule, only: store_error
   use SimVariablesModule, only: errmsg
@@ -30,7 +30,7 @@ module GwfUzrModule
   contains
     procedure :: allocate_scalars
     procedure :: allocate_arrays
-    procedure :: uzr_cr
+    !procedure :: uzr_cr
     procedure :: ar
     procedure :: da => uzr_da
     procedure :: read_options => uzr_read_options
@@ -48,7 +48,7 @@ module GwfUzrModule
   !<
   subroutine uzr_cr(uzr, name_model, inunit, iout)
     ! -- dummy variables
-    type(UzrType), pointer, intent(out) :: uzr
+    type(UzrType), pointer :: uzr
     character(len=*), intent(in) :: name_model
     integer(I4B), intent(in) :: inunit
     integer(I4B), intent(in) :: iout
@@ -137,10 +137,10 @@ module GwfUzrModule
 
   end subroutine ar
   
-  subroutine uzr_read_options(this, keyword) result(success)
+  subroutine uzr_read_options(this)
     ! -- dummy
     class(UzrType) :: this
-    character(len=*), intent(in) :: keyword
+    !character(len=*), intent(in) :: keyword
     ! -- return
     logical :: success
     !
@@ -350,7 +350,7 @@ module GwfUzrModule
       nullify (this%uzr_brooks_n)
     end if
     ! -- Deallocate parent
-    call tvbase_da(this)
+    !call tvbase_da(this)
     !
     ! -- Return
     return
