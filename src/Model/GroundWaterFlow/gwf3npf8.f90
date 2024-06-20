@@ -380,6 +380,11 @@ contains
     if (this%intvk /= 0) then
       call this%tvk%rp()
     end if
+        !
+    ! -- UZR
+    if (this%inuzr /= 0) then
+      call this%uzr%read_data()
+    end if
     !
     ! -- Return
     return
@@ -1140,7 +1145,7 @@ contains
     call mem_allocate(this%nedges, 'NEDGES', this%memoryPath)
     call mem_allocate(this%lastedge, 'LASTEDGE', this%memoryPath)
     call mem_allocate(this%intvk, 'INTVK', this%memoryPath)
-    call mem_allocate(this%intvk, 'INTVK', this%memoryPath)
+    call mem_allocate(this%inuzr, 'INUZR', this%memoryPath)
     call mem_allocate(this%invsc, 'INVSC', this%memoryPath)
     call mem_allocate(this%kchangeper, 'KCHANGEPER', this%memoryPath)
     call mem_allocate(this%kchangestp, 'KCHANGESTP', this%memoryPath)

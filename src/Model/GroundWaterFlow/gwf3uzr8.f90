@@ -58,6 +58,11 @@ module GwfUzrModule
     !call uzr%init(name_model, 'UZR', 'UZR', inunit, iout)
 
     call uzr%set_names(1, name_model, 'UZR', 'UZR')
+    
+     !
+    ! -- allocate scalars
+    call uzr%allocate_scalars()
+    
     uzr%inunit = inunit
     uzr%iout = iout
     call uzr%parser%Initialize(uzr%inunit, uzr%iout)
@@ -98,18 +103,18 @@ module GwfUzrModule
     integer(I4B) :: n
     !
     ! -- Allocate arrays
-    call mem_allocate(this%uzr_alpha, nodes, 'Richards Alpha', this%memoryPath)
-    call mem_allocate(this%uzr_beta, nodes, 'Richards Beta', this%memoryPath)
-    call mem_allocate(this%uzr_sr, nodes, 'Richards Sr', this%memoryPath)
+    call mem_allocate(this%uzr_alpha, nodes, 'UZR_ALPHA', this%memoryPath)
+    call mem_allocate(this%uzr_beta, nodes, 'UZR_BETA', this%memoryPath)
+    call mem_allocate(this%uzr_sr, nodes, 'UZR_SR', this%memoryPath)
     !call mem_allocate(this%uzr_alpha, nodes, 'Richards Alpha', this%memoryPath)
     !
     ! -- In case of using Brooks and Corey for relative permability
-    if (this%imethod /= 0) then
-      call mem_allocate(this%uzr_brooks_n, nodes, 'Richards N (Brooks. C)', this%memoryPath)
-      do n = 1, nodes
-      this%uzr_brooks_n(n) = DZERO
-      end do
-    end if
+  !  if (this%imethod /= 0) then
+  !    call mem_allocate(this%uzr_brooks_n, nodes, 'UZR_BROOK-COREY', this%memoryPath)
+  !    do n = 1, nodes
+  !    this%uzr_brooks_n(n) = DZERO
+  !    end do
+  !  end if
     
     do n = 1, nodes
       this%uzr_alpha(n) = DZERO
@@ -134,7 +139,10 @@ module GwfUzrModule
 
     this%dis => dis
     call this%read_options()
-
+   ! 
+   ! -- Allocate arrays
+    call this%allocate_arrays(dis%nodes)
+   !
   end subroutine ar
   
   subroutine uzr_read_options(this)
@@ -197,17 +205,17 @@ module GwfUzrModule
         call this%parser%GetRemainingLine(line)
         lloc = 1
         select case (keyword)
-        case ('uzr_alpha')
+        case ('UZR_ALPHA')
           call this%dis%read_grid_array(line, lloc, istart, istop, this%iout, &
                                         this%parser%iuactive, this%uzr_alpha, &
                                         aname(1))
           read_uzr_alpha = .true.
-        case ('uzr_beta')
+        case ('UZR_BETA')
           call this%dis%read_grid_array(line, lloc, istart, istop, this%iout, &
                                         this%parser%iuactive, this%uzr_beta, &
                                         aname(2))
           read_uzr_beta = .true.
-        case ('uzr_sr')
+        case ('UZR_SR')
           call this%dis%read_grid_array(line, lloc, istart, istop, this%iout, &
                                         this%parser%iuactive, this%uzr_sr, &
                                         aname(3))
