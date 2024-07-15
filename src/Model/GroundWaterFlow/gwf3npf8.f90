@@ -6,7 +6,7 @@ module GwfNpfModule
                              DLNLOW, DLNHIGH, &
                              DHNOFLO, DHDRY, DEM10, &
                              LENMEMPATH, LENVARNAME, LINELENGTH
-  use SmoothingModule, only: sQuadraticSaturation, &
+  use SmoothingModule, only: sQuadraticSaturation, svanGenuchtenKrelative, &
                              sQuadraticSaturationDerivative
   use NumericalPackageModule, only: NumericalPackageType
   use GwfNpfOptionsModule, only: GwfNpfOptionsType
@@ -2549,6 +2549,8 @@ contains
     ! -- return
     real(DP) :: condnm
     ! -- dummy
+    class(GwfNpftype) :: this !< instance of the NPF package
+    class(UzrType) :: this2 !< instance of the NPF package
     integer(I4B), intent(in) :: ibdn
     integer(I4B), intent(in) :: ibdm
     integer(I4B), intent(in) :: ictn
@@ -2629,11 +2631,23 @@ contains
             top = topn
             bot = botn
           end if
-          sn = sQuadraticSaturation(top, bot, hn, satomega, satmin)
-          sm = sQuadraticSaturation(top, bot, hm, satomega, satmin)
+        ! -- UZR
+         if (this%inuzr /= 0) then
+           sn = svanGenuchtenKrelative(top, bot, hn, this2%uzr_alpha(1), this2%uzr_beta(1), this2%uzr_sr(1))
+           sm = svanGenuchtenKrelative(top, bot, hm, this2%uzr_alpha(1), this2%uzr_beta(1), this2%uzr_sr(1))
+         else
+           sn = sQuadraticSaturation(top, bot, hn, satomega, satmin)
+           sm = sQuadraticSaturation(top, bot, hm, satomega, satmin)
+         end if
         else
-          sn = sQuadraticSaturation(topn, botn, hn, satomega, satmin)
-          sm = sQuadraticSaturation(topm, botm, hm, satomega, satmin)
+          ! -- UZR
+         if (this%inuzr /= 0) then
+           sn = svanGenuchtenKrelative(top, bot, hn, this2%uzr_alpha(1), this2%uzr_beta(1), this2%uzr_sr(1))
+           sm = svanGenuchtenKrelative(top, bot, hm, this2%uzr_alpha(1), this2%uzr_beta(1), this2%uzr_sr(1))
+         else
+           sn = sQuadraticSaturation(top, bot, hn, satomega, satmin)
+           sm = sQuadraticSaturation(top, bot, hm, satomega, satmin)
+         end if
         end if
         !
         if (hn > hm) then
