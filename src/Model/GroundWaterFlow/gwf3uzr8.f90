@@ -364,5 +364,140 @@ module GwfUzrModule
     return
   end subroutine uzr_da
 
+  function svanGenuchtenSaturation(top, bot, x, index) result(y)
+! ******************************************************************************
+! Nonlinear smoothing function returns value between 0-1;
+! van Genuchten saturation function
+! ******************************************************************************
+!
+!    SPECIFICATIONS:
+! ------------------------------------------------------------------------------
+    ! -- return
+    real(DP) :: y
+    ! -- dummy variables
+    real(DP), intent(in) :: top
+    real(DP), intent(in) :: bot
+    real(DP), intent(in) :: x
+    real(DP), intent(in) :: index
+    ! -- local
+    real(DP) :: b
+    real(DP) :: hc
+    real(DP) :: gamma
+    real(DP) :: seff
+! ------------------------------------------------------------------------------
+!   code
+!
+!  b = elevation head
+    b = DHALF*(top - bot) + bot
+!  hc = capillary head (negative of pressure head)
+    hc = b - x
+    if (hc >= DZERO) then
+      y = DONE
+    else
+      gamma = DONE - (DONE / uzr_beta(index))
+      seff = (DONE + (uzr_alpha(index) * hc)**uzr_beta(index))**gamma
+      seff = DONE / seff
+      y = seff * (DONE - uzr_sr(index)) + uzr_sr(index)
+    end if
+
+    return
+  end function svanGenuchtenSaturation
+  
+  function svanGenuchtenKrelative(top, bot, x, index) result(y)
+! ******************************************************************************
+! Nonlinear smoothing function returns value between 0-1;
+! van Genuchten saturation function
+! ******************************************************************************
+!
+!    SPECIFICATIONS:
+! ------------------------------------------------------------------------------
+    ! -- return
+    real(DP) :: y
+    ! -- dummy variables
+    real(DP), intent(in) :: top
+    real(DP), intent(in) :: bot
+    real(DP), intent(in) :: x
+    real(DP), intent(in) :: index
+    ! -- local
+    real(DP) :: b
+    real(DP) :: hc
+    real(DP) :: gamma
+    real(DP) :: seff
+! ------------------------------------------------------------------------------
+!   code
+!
+!  b = elevation head
+    b = DHALF*(top - bot) + bot
+!  hc = capillary head (negative of pressure head)
+    hc = b - x
+    if (hc >= DZERO) then
+      y = DONE
+    else
+      gamma = DONE - (DONE / uzr_beta(index))
+      seff = (DONE + (uzr_alpha(index) * hc)**uzr_beta(index))**gamma
+      seff = DONE / seff
+      y = SQRT(seff) * (DONE-(DONE-seff**(DONE / gamma))**gamma)**DTWO
+    end if
+
+    return
+  end function svanGenuchtenKrelative
+
+  function svanGenuchtenSaturationDerivative(top, bot, x, index, eps) result(y)
+! ******************************************************************************
+! Derivative of nonlinear smoothing function returns value between 0-1;
+! Derivative of the quadratic saturation function
+! ******************************************************************************
+!
+!    SPECIFICATIONS:
+! ------------------------------------------------------------------------------
+    ! -- return
+    real(DP) :: y
+    ! -- dummy variables
+    real(DP), intent(in) :: top
+    real(DP), intent(in) :: bot
+    real(DP), intent(in) :: x
+    real(DP), intent(in) :: index
+    real(DP), intent(in) :: eps
+    ! -- local
+    real(DP) :: h
+    real(DP) :: heps
+! ------------------------------------------------------------------------------
+!   code
+!
+    h = svanGenuchtenSaturation(top, bot, x, index)
+    heps = svanGenuchtenSaturation(top, bot, x+eps, index)
+    y = (heps - h) / eps
+
+    return
+  end function svanGenuchtenSaturationDerivative
+  
+  function svanGenuchtenKrelativeDerivative(top, bot, x, index, eps) result(y)
+! ******************************************************************************
+! Derivative of nonlinear smoothing function returns value between 0-1;
+! Derivative of the quadratic saturation function
+! ******************************************************************************
+!
+!    SPECIFICATIONS:
+! ------------------------------------------------------------------------------
+    ! -- return
+    real(DP) :: y
+    ! -- dummy variables
+    real(DP), intent(in) :: top
+    real(DP), intent(in) :: bot
+    real(DP), intent(in) :: x
+    real(DP), intent(in) :: index
+    real(DP), intent(in) :: eps
+    ! -- local
+    real(DP) :: h
+    real(DP) :: heps
+! ------------------------------------------------------------------------------
+!   code
+!
+    h = svanGenuchtenKrelative(top, bot, x, index)
+    heps = svanGenuchtenKrelative(top, bot, x+eps, index)
+    y = (heps - h) / eps
+
+    return
+  end function svanGenuchtenKrelativeDerivative
 
 end module GwfUzrModule
