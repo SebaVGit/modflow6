@@ -2,7 +2,8 @@ module GwfUzrModule
 
   use NumericalPackageModule, only: NumericalPackageType
   use BaseDisModule, only: DisBaseType
-  use ConstantsModule, only: LINELENGTH, LENMEMPATH, DZERO
+  use ConstantsModule, only: LINELENGTH, LENMEMPATH, DZERO, DEM2, &
+                             DONE, DTWO, DHALF
   use KindModule, only: I4B, DP
   use MemoryManagerModule, only: mem_setptr, mem_allocate
   use MemoryHelperModule, only: create_mem_path
@@ -17,6 +18,10 @@ module GwfUzrModule
 
   public :: uzr_cr
   public :: UzrType
+  public :: svanGenuchtenSaturation
+  public :: svanGenuchtenKrelative
+  public :: svanGenuchtenSaturationDerivative
+  public :: svanGenuchtenKrelativeDerivative
 
   type, extends(NumericalPackageType) :: UzrType
     integer(I4B), pointer :: imethod => null() !< 0 for brooks corey, or 1 for van genuchten
@@ -364,7 +369,11 @@ module GwfUzrModule
     return
   end subroutine uzr_da
 
-  function svanGenuchtenSaturation(top, bot, x, index) result(y)
+
+  !!function svanGenuchtenSaturation(top, bot,  x, index, 
+  !!             alpha, beta, brooks, sr) result(y)
+  function svanGenuchtenSaturation(top, bot,  x, &
+               alpha, beta, sr) result(y)
 ! ******************************************************************************
 ! Nonlinear smoothing function returns value between 0-1;
 ! van Genuchten saturation function
@@ -374,11 +383,14 @@ module GwfUzrModule
 ! ------------------------------------------------------------------------------
     ! -- return
     real(DP) :: y
+    real(DP), intent(in) :: alpha
+    real(DP), intent(in) :: beta
+    !!real(DP), intent(in) :: brooks
+    real(DP), intent(in) :: sr
     ! -- dummy variables
     real(DP), intent(in) :: top
     real(DP), intent(in) :: bot
     real(DP), intent(in) :: x
-    real(DP), intent(in) :: index
     ! -- local
     real(DP) :: b
     real(DP) :: hc
@@ -394,16 +406,20 @@ module GwfUzrModule
     if (hc >= DZERO) then
       y = DONE
     else
-      gamma = DONE - (DONE / uzr_beta(index))
-      seff = (DONE + (uzr_alpha(index) * hc)**uzr_beta(index))**gamma
+      gamma = DONE - (DONE / beta)
+      seff = (DONE + (alpha * hc)**beta)**gamma
       seff = DONE / seff
-      y = seff * (DONE - uzr_sr(index)) + uzr_sr(index)
+      y = seff * (DONE - sr) + sr
     end if
 
     return
   end function svanGenuchtenSaturation
   
-  function svanGenuchtenKrelative(top, bot, x, index) result(y)
+  !!function svanGenuchtenKrelative(top, bot,  x, index, 
+  !!            alpha, beta, brooks, sr) result(y)
+  function svanGenuchtenKrelative(top, bot,  x, &
+               alpha, beta) result(y)
+
 ! ******************************************************************************
 ! Nonlinear smoothing function returns value between 0-1;
 ! van Genuchten saturation function
@@ -413,11 +429,13 @@ module GwfUzrModule
 ! ------------------------------------------------------------------------------
     ! -- return
     real(DP) :: y
+    real(DP), intent(in) :: alpha
+    real(DP), intent(in) :: beta
+
     ! -- dummy variables
     real(DP), intent(in) :: top
     real(DP), intent(in) :: bot
     real(DP), intent(in) :: x
-    real(DP), intent(in) :: index
     ! -- local
     real(DP) :: b
     real(DP) :: hc
@@ -433,8 +451,8 @@ module GwfUzrModule
     if (hc >= DZERO) then
       y = DONE
     else
-      gamma = DONE - (DONE / uzr_beta(index))
-      seff = (DONE + (uzr_alpha(index) * hc)**uzr_beta(index))**gamma
+      gamma = DONE - (DONE / beta)
+      seff = (DONE + (alpha * hc)**beta)**gamma
       seff = DONE / seff
       y = SQRT(seff) * (DONE-(DONE-seff**(DONE / gamma))**gamma)**DTWO
     end if
@@ -442,7 +460,7 @@ module GwfUzrModule
     return
   end function svanGenuchtenKrelative
 
-  function svanGenuchtenSaturationDerivative(top, bot, x, index, eps) result(y)
+  function svanGenuchtenSaturationDerivative(top, bot, x, alpha, beta, sr, index, eps) result(y)
 ! ******************************************************************************
 ! Derivative of nonlinear smoothing function returns value between 0-1;
 ! Derivative of the quadratic saturation function
@@ -452,6 +470,10 @@ module GwfUzrModule
 ! ------------------------------------------------------------------------------
     ! -- return
     real(DP) :: y
+    real(DP), intent(in) :: alpha
+    real(DP), intent(in) :: beta
+    !!real(DP), intent(in) :: brooks
+    real(DP), intent(in) :: sr
     ! -- dummy variables
     real(DP), intent(in) :: top
     real(DP), intent(in) :: bot
@@ -464,14 +486,14 @@ module GwfUzrModule
 ! ------------------------------------------------------------------------------
 !   code
 !
-    h = svanGenuchtenSaturation(top, bot, x, index)
-    heps = svanGenuchtenSaturation(top, bot, x+eps, index)
+    h = svanGenuchtenSaturation(top, bot, x, alpha, beta, sr)
+    heps = svanGenuchtenSaturation(top, bot, x+eps, alpha, beta, sr)
     y = (heps - h) / eps
 
     return
   end function svanGenuchtenSaturationDerivative
   
-  function svanGenuchtenKrelativeDerivative(top, bot, x, index, eps) result(y)
+  function svanGenuchtenKrelativeDerivative(top, bot, x, alpha, beta, index, eps) result(y)
 ! ******************************************************************************
 ! Derivative of nonlinear smoothing function returns value between 0-1;
 ! Derivative of the quadratic saturation function
@@ -481,6 +503,8 @@ module GwfUzrModule
 ! ------------------------------------------------------------------------------
     ! -- return
     real(DP) :: y
+    real(DP), intent(in) :: alpha
+    real(DP), intent(in) :: beta
     ! -- dummy variables
     real(DP), intent(in) :: top
     real(DP), intent(in) :: bot
@@ -493,8 +517,8 @@ module GwfUzrModule
 ! ------------------------------------------------------------------------------
 !   code
 !
-    h = svanGenuchtenKrelative(top, bot, x, index)
-    heps = svanGenuchtenKrelative(top, bot, x+eps, index)
+    h = svanGenuchtenKrelative(top, bot, x, alpha,beta)
+    heps = svanGenuchtenKrelative(top, bot, x+eps, alpha, beta)
     y = (heps - h) / eps
 
     return
