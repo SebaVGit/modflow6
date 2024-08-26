@@ -445,10 +445,10 @@ module GwfUzrModule
 !   code
 !
 !  b = elevation head
-    b = DHALF*(top - bot) + bot
+    b = 0.5 * (top + bot)
 !  hc = capillary head (negative of pressure head)
     hc = b - x
-    if (hc >= DZERO) then
+    if (hc < DZERO) then
       y = DONE
     else
       gamma = DONE - (DONE / beta)

@@ -2672,7 +2672,7 @@ contains
         if (abs(botm - botn) < DEM2) indk = 1
         ! -- recalculate saturation if using MODFLOW-USG saturation
         !    calculation approach
-        if (iusg == 1 .and. indk == 0) then
+    !csp ***        if (iusg == 1 .and. indk == 0) then
           if (botm > botn) then
             top = topm
             bot = botm
@@ -2683,10 +2683,10 @@ contains
         
          sn = svanGenuchtenKrelative(top, bot, hn, alphan, betan)
          sm = svanGenuchtenKrelative(top, bot, hm, alpham, betam)
-        else
-          sn = svanGenuchtenKrelative(top, bot, hn, alphan, betan)
-          sm = svanGenuchtenKrelative(top, bot, hm, alpham, betam)
-        end if
+         !csp *** else
+    !csp ***        sn = svanGenuchtenKrelative(top, bot, hn, alphan, betan)
+    !csp ***       sm = svanGenuchtenKrelative(top, bot, hm, alpham, betam)
+    !csp ***     end if
         !
         if (hn > hm) then
           condnm = sn
