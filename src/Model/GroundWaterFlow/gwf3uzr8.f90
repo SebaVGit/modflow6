@@ -460,7 +460,7 @@ module GwfUzrModule
     return
   end function svanGenuchtenKrelative
 
-  function svanGenuchtenSaturationDerivative(top, bot, x, alpha, beta, sr, index, eps) result(y)
+  function svanGenuchtenSaturationDerivative(top, bot, x, alpha, beta, sr, eps) result(y)
 ! ******************************************************************************
 ! Derivative of nonlinear smoothing function returns value between 0-1;
 ! Derivative of the quadratic saturation function
@@ -478,7 +478,6 @@ module GwfUzrModule
     real(DP), intent(in) :: top
     real(DP), intent(in) :: bot
     real(DP), intent(in) :: x
-    real(DP), intent(in) :: index
     real(DP), intent(in) :: eps
     ! -- local
     real(DP) :: h
@@ -493,7 +492,7 @@ module GwfUzrModule
     return
   end function svanGenuchtenSaturationDerivative
   
-  function svanGenuchtenKrelativeDerivative(top, bot, x, alpha, beta, index, eps) result(y)
+  function svanGenuchtenKrelativeDerivative(top, bot, x, alpha, beta, eps) result(y)
 ! ******************************************************************************
 ! Derivative of nonlinear smoothing function returns value between 0-1;
 ! Derivative of the quadratic saturation function
@@ -509,7 +508,6 @@ module GwfUzrModule
     real(DP), intent(in) :: top
     real(DP), intent(in) :: bot
     real(DP), intent(in) :: x
-    real(DP), intent(in) :: index
     real(DP), intent(in) :: eps
     ! -- local
     real(DP) :: h

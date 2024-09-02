@@ -15,7 +15,7 @@ module GwfNpfModule
   use Xt3dModule, only: Xt3dType
   use InputOutputModule, only: GetUnit, openfile
   use TvkModule, only: TvkType, tvk_cr
-  use GwfUzrModule, only: UzrType, uzr_cr, svanGenuchtenKrelative
+  use GwfUzrModule, only: UzrType, uzr_cr, svanGenuchtenKrelative, svanGenuchtenKrelativeDerivative
   use MemoryManagerModule, only: mem_allocate, mem_reallocate, &
                                  mem_deallocate, mem_setptr, &
                                  mem_reassignptr
@@ -125,6 +125,7 @@ module GwfNpfModule
     procedure :: npf_da
     procedure, private :: thksat => sgwf_npf_thksat
     procedure, private :: qcalc => sgwf_npf_qcalc
+    procedure, private :: uzrqcalc => sgwf_uzr_npf_qcalc
     procedure, private :: wd => sgwf_npf_wetdry
     procedure, private :: wdmsg => sgwf_npf_wdmsg
     procedure :: allocate_scalars
@@ -723,8 +724,16 @@ contains
             consterm = -cond * (hnew(iups) - hnew(idn)) !needs to use hwadi instead of hnew(idn)
             !filledterm = cond
             filledterm = matrix_sln%get_value_pos(idxglo(ii))
-            derv = sQuadraticSaturationDerivative(topup, botup, hnew(iups), &
-                                                  this%satomega, this%satmin)
+            if (this%inuzr /= 0) then
+                !UZR Derivative
+                derv = svanGenuchtenKrelativeDerivative(topup, botup, hnew(iups), &
+                                                        this%uzr%uzr_alpha(iups),this%uzr%uzr_beta(iups), &
+                                                        this%satomega)
+            else
+                !Normal Derivative
+                derv = sQuadraticSaturationDerivative(topup, botup, hnew(iups), &
+                                                      this%satomega, this%satmin)
+            end if
             idiagm = this%dis%con%ia(m)
             ! fill jacobian for n being the upstream node
             if (iups == n) then
@@ -846,7 +855,11 @@ contains
         do ipos = this%dis%con%ia(n) + 1, this%dis%con%ia(n + 1) - 1
           m = this%dis%con%ja(ipos)
           if (m < n) cycle
-          call this%qcalc(n, m, hnew(n), hnew(m), ipos, qnm)
+          if (this%inuzr /= 0) then
+              call this%qcalc(n, m, hnew(n), hnew(m), ipos, qnm)
+          else
+              call this%uzrqcalc(n, m, hnew(n), hnew(m), ipos, qnm)
+          end if
           flowja(ipos) = qnm
           flowja(this%dis%con%isym(ipos)) = -qnm
         end do
@@ -959,6 +972,69 @@ contains
     ! -- Return
     return
   end subroutine sgwf_npf_qcalc
+  
+  subroutine sgwf_uzr_npf_qcalc(this, n, m, hn, hm, icon, qnm)
+    ! -- dummy
+    class(GwfNpfType) :: this
+    integer(I4B), intent(in) :: n
+    integer(I4B), intent(in) :: m
+    real(DP), intent(in) :: hn
+    real(DP), intent(in) :: hm
+    integer(I4B), intent(in) :: icon
+    real(DP), intent(inout) :: qnm
+    ! -- local
+    real(DP) :: hyn, hym
+    real(DP) :: condnm
+    real(DP) :: hntemp, hmtemp
+    integer(I4B) :: ihc
+    !
+    ! -- Initialize
+    ihc = this%dis%con%ihc(this%dis%con%jas(icon))
+    hyn = this%hy_eff(n, m, ihc, ipos=icon)
+    hym = this%hy_eff(m, n, ihc, ipos=icon)
+    !
+    ! -- Calculate conductance
+    condnm = uzrcond(this%ibound(n), this%ibound(m), &
+                         this%icelltype(n), this%icelltype(m), &
+                         this%inewton, this%inewton, &
+                         this%dis%con%ihc(this%dis%con%jas(icon)), &
+                         this%icellavg, this%iusgnrhc, this%inwtupw, &
+                         this%condsat(this%dis%con%jas(icon)), &
+                         hn, hm, this%sat(n), this%sat(m), hyn, hym, &
+                         this%dis%top(n), this%dis%top(m), &
+                         this%dis%bot(n), this%dis%bot(m), &
+                         this%dis%con%cl1(this%dis%con%jas(icon)), &
+                         this%dis%con%cl2(this%dis%con%jas(icon)), &
+                         this%dis%con%hwva(this%dis%con%jas(icon)), &
+                         this%satomega, this%satmin, n, m, &
+                         this%uzr%uzr_alpha(n), this%uzr%uzr_beta(n), &
+                         this%uzr%uzr_alpha(m), this%uzr%uzr_beta(m))
+    !
+    ! -- Initialize hntemp and hmtemp
+    hntemp = hn
+    hmtemp = hm
+    !
+    ! -- Check and adjust for dewatered conditions
+    if (this%iperched /= 0) then
+      if (this%dis%con%ihc(this%dis%con%jas(icon)) == 0) then
+        if (n > m) then
+          if (this%icelltype(n) /= 0) then
+            if (hn < this%dis%top(n)) hntemp = this%dis%bot(m)
+          end if
+        else
+          if (this%icelltype(m) /= 0) then
+            if (hm < this%dis%top(m)) hmtemp = this%dis%bot(n)
+          end if
+        end if
+      end if
+    end if
+    !
+    ! -- Calculate flow positive into cell n
+    qnm = condnm * (hmtemp - hntemp)
+    !
+    ! -- Return
+    return
+  end subroutine sgwf_uzr_npf_qcalc
 
   !> @brief Record flowja and calculate specific discharge if requested
   !<
