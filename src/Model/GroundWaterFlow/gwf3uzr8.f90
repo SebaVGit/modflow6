@@ -460,7 +460,7 @@ module GwfUzrModule
     return
   end function svanGenuchtenKrelative
 
-  function svanGenuchtenSaturationDerivative(top, bot, x, alpha, beta, sr, eps) result(y)
+  function svanGenuchtenSaturationDerivative(top, bot, x, alpha, beta, sr) result(y)
 ! ******************************************************************************
 ! Derivative of nonlinear smoothing function returns value between 0-1;
 ! Derivative of the quadratic saturation function
@@ -478,13 +478,14 @@ module GwfUzrModule
     real(DP), intent(in) :: top
     real(DP), intent(in) :: bot
     real(DP), intent(in) :: x
-    real(DP), intent(in) :: eps
     ! -- local
     real(DP) :: h
     real(DP) :: heps
+    real(DP) :: eps
 ! ------------------------------------------------------------------------------
 !   code
 !
+    eps = 1e-5
     h = svanGenuchtenSaturation(top, bot, x, alpha, beta, sr)
     heps = svanGenuchtenSaturation(top, bot, x+eps, alpha, beta, sr)
     y = (heps - h) / eps

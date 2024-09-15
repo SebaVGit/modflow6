@@ -22,6 +22,8 @@ module GwfStoModule
   use InputOutputModule, only: GetUnit, openfile
   use TvsModule, only: TvsType, tvs_cr
   use MatrixBaseModule
+  use GwfUzrModule, only: UzrType, uzr_cr, svanGenuchtenSaturation, svanGenuchtenSaturationDerivative
+  use GwfNpfModule, only: GwfNpfType
 
   implicit none
   public :: GwfStoType, sto_cr
@@ -47,6 +49,8 @@ module GwfStoModule
     type(TvsType), pointer :: tvs => null() !< TVS object
     real(DP), dimension(:), pointer, contiguous, private :: oldss => null() !< previous time step specific storage
     real(DP), dimension(:), pointer, contiguous, private :: oldsy => null() !< previous time step specific yield
+    type(UzrType), pointer :: uzr => null() ! UZR object
+    type(GwfNpfType), pointer :: npf => null() ! NPF object
   contains
     procedure :: sto_ar
     procedure :: sto_rp
@@ -334,12 +338,19 @@ contains
       bt = this%dis%bot(n)
       !
       ! -- aquifer saturation
-      if (this%iconvert(n) == 0) then
-        snold = DONE
-        snnew = DONE
+      ! -- if UZR then calculate the vanGenuchten
+      if (this%npf%inuzr /= 0) then
+        snold = svanGenuchtenSaturation(tp, bt, hold(n), this%uzr%uzr_alpha(n), this%uzr%uzr_beta(n),this%uzr%uzr_sr(n))
+        snnew = svanGenuchtenSaturation(tp, bt, hnew(n), this%uzr%uzr_alpha(n), this%uzr%uzr_beta(n),this%uzr%uzr_sr(n))
+
       else
-        snold = sQuadraticSaturation(tp, bt, hold(n), this%satomega)
-        snnew = sQuadraticSaturation(tp, bt, hnew(n), this%satomega)
+        if (this%iconvert(n) == 0) then
+            snold = DONE
+            snnew = DONE
+       else
+            snold = sQuadraticSaturation(tp, bt, hold(n), this%satomega)
+            snnew = sQuadraticSaturation(tp, bt, hnew(n), this%satomega)
+       end if
       end if
       !
       ! -- storage coefficients
@@ -454,7 +465,12 @@ contains
       h = hnew(n)
       !
       ! -- aquifer saturation
-      snnew = sQuadraticSaturation(tp, bt, h)
+      ! -- if UZR then calculate the vanGenuchten
+      if (this%npf%inuzr /= 0) then
+        snnew = svanGenuchtenSaturation(tp, bt, h, this%uzr%uzr_alpha(n), this%uzr%uzr_beta(n),this%uzr%uzr_sr(n))
+      else
+        snnew = sQuadraticSaturation(tp, bt, h)
+      end if
       !
       ! -- storage coefficients
       sc1 = SsCapacity(this%istor_coef, tp, bt, this%dis%area(n), this%ss(n))
@@ -467,7 +483,12 @@ contains
       if (this%iconvert(n) /= 0) then
         !
         ! -- calculate saturation derivative
-        derv = sQuadraticSaturationDerivative(tp, bt, h)
+          ! -- if UZR then calculate the vanGenuchten
+        if (this%npf%inuzr /= 0) then
+          derv = svanGenuchtenSaturationDerivative(tp, bt, h, this%uzr%uzr_alpha(n), this%uzr%uzr_beta(n),this%uzr%uzr_sr(n))
+        else
+          derv = sQuadraticSaturationDerivative(tp, bt, h)
+        end if
         !
         ! -- newton terms for specific storage
         if (this%iconf_ss == 0) then
@@ -553,12 +574,18 @@ contains
         bt = this%dis%bot(n)
         !
         ! -- aquifer saturation
-        if (this%iconvert(n) == 0) then
-          snold = DONE
-          snnew = DONE
+        ! -- if UZR then calculate the vanGenuchten
+        if (this%npf%inuzr /= 0) then
+          snold = svanGenuchtenSaturation(tp, bt, hold(n), this%uzr%uzr_alpha(n), this%uzr%uzr_beta(n),this%uzr%uzr_sr(n))
+          snnew = svanGenuchtenSaturation(tp, bt, hnew(n), this%uzr%uzr_alpha(n), this%uzr%uzr_beta(n),this%uzr%uzr_sr(n))
         else
-          snold = sQuadraticSaturation(tp, bt, hold(n), this%satomega)
-          snnew = sQuadraticSaturation(tp, bt, hnew(n), this%satomega)
+          if (this%iconvert(n) == 0) then
+              snold = DONE
+              snnew = DONE
+         else
+              snold = sQuadraticSaturation(tp, bt, hold(n), this%satomega)
+              snnew = sQuadraticSaturation(tp, bt, hnew(n), this%satomega)
+         end if
         end if
         !
         ! -- primary storage coefficient
