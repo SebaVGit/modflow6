@@ -403,7 +403,7 @@ module GwfUzrModule
     b = DHALF*(top - bot) + bot
 !  hc = capillary head (negative of pressure head)
     hc = b - x
-    if (hc >= DZERO) then
+    if (hc <= DZERO) then
       y = DONE
     else
       gamma = DONE - (DONE / beta)

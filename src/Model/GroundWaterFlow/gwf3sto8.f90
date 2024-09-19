@@ -22,7 +22,7 @@ module GwfStoModule
   use InputOutputModule, only: GetUnit, openfile
   use TvsModule, only: TvsType, tvs_cr
   use MatrixBaseModule
-  use GwfUzrModule, only: UzrType, uzr_cr, svanGenuchtenSaturation, svanGenuchtenSaturationDerivative
+  use GwfUzrModule 
   use GwfNpfModule, only: GwfNpfType
 
   implicit none
@@ -49,6 +49,7 @@ module GwfStoModule
     type(TvsType), pointer :: tvs => null() !< TVS object
     real(DP), dimension(:), pointer, contiguous, private :: oldss => null() !< previous time step specific storage
     real(DP), dimension(:), pointer, contiguous, private :: oldsy => null() !< previous time step specific yield
+    integer(I4B), pointer :: inuzr => null() ! UZR (unsat richards) unit number (0 if unused)    
     type(UzrType), pointer :: uzr => null() ! UZR object
     type(GwfNpfType), pointer :: npf => null() ! NPF object
   contains
@@ -282,7 +283,7 @@ contains
   !!  Fill the coefficient matrix and right-hand side with the STO package terms.
   !!
   !<
-  subroutine sto_fc(this, kiter, hold, hnew, matrix_sln, idxglo, rhs)
+  subroutine sto_fc(this, kiter, hold, hnew, matrix_sln, idxglo, rhs, npf)
     ! -- modules
     use TdisModule, only: delt
     ! -- dummy variables
@@ -291,6 +292,7 @@ contains
     real(DP), intent(in), dimension(:) :: hold !< previous heads
     real(DP), intent(in), dimension(:) :: hnew !< current heads
     class(MatrixBaseType), pointer :: matrix_sln !< A matrix
+    Type(GwfNpfType):: npf 
     integer(I4B), intent(in), dimension(:) :: idxglo !< global index model to solution
     real(DP), intent(inout), dimension(:) :: rhs !< right-hand side
     ! -- local variables
@@ -339,9 +341,9 @@ contains
       !
       ! -- aquifer saturation
       ! -- if UZR then calculate the vanGenuchten
-      if (this%npf%inuzr /= 0) then
-        snold = svanGenuchtenSaturation(tp, bt, hold(n), this%uzr%uzr_alpha(n), this%uzr%uzr_beta(n),this%uzr%uzr_sr(n))
-        snnew = svanGenuchtenSaturation(tp, bt, hnew(n), this%uzr%uzr_alpha(n), this%uzr%uzr_beta(n),this%uzr%uzr_sr(n))
+      if (npf%inuzr /= 0) then
+        snold = svanGenuchtenSaturation(tp, bt, hold(n), npf%uzr%uzr_alpha(n), npf%uzr%uzr_beta(n),npf%uzr%uzr_sr(n))
+        snnew = svanGenuchtenSaturation(tp, bt, hnew(n), npf%uzr%uzr_alpha(n), npf%uzr%uzr_beta(n),npf%uzr%uzr_sr(n))
 
       else
         if (this%iconvert(n) == 0) then
@@ -419,7 +421,7 @@ contains
   !!  with Newton-Raphson terms.
   !!
   !<
-  subroutine sto_fn(this, kiter, hold, hnew, matrix_sln, idxglo, rhs)
+  subroutine sto_fn(this, kiter, hold, hnew, matrix_sln, idxglo, rhs, npf)
     ! -- modules
     use TdisModule, only: delt
     ! -- dummy variables
@@ -428,6 +430,7 @@ contains
     real(DP), intent(in), dimension(:) :: hold !< previous heads
     real(DP), intent(in), dimension(:) :: hnew !< current heads
     class(MatrixBaseType), pointer :: matrix_sln !< A matrix
+    Type(GwfNpfType) :: npf
     integer(I4B), intent(in), dimension(:) :: idxglo !< global index model to solution
     real(DP), intent(inout), dimension(:) :: rhs !< right-hand side
     ! -- local variables
@@ -466,8 +469,8 @@ contains
       !
       ! -- aquifer saturation
       ! -- if UZR then calculate the vanGenuchten
-      if (this%npf%inuzr /= 0) then
-        snnew = svanGenuchtenSaturation(tp, bt, h, this%uzr%uzr_alpha(n), this%uzr%uzr_beta(n),this%uzr%uzr_sr(n))
+      if (npf%inuzr /= 0) then
+        snnew = svanGenuchtenSaturation(tp, bt, h, npf%uzr%uzr_alpha(n), npf%uzr%uzr_beta(n),npf%uzr%uzr_sr(n))
       else
         snnew = sQuadraticSaturation(tp, bt, h)
       end if
@@ -484,8 +487,8 @@ contains
         !
         ! -- calculate saturation derivative
           ! -- if UZR then calculate the vanGenuchten
-        if (this%npf%inuzr /= 0) then
-          derv = svanGenuchtenSaturationDerivative(tp, bt, h, this%uzr%uzr_alpha(n), this%uzr%uzr_beta(n),this%uzr%uzr_sr(n))
+        if (npf%inuzr /= 0) then
+          derv = svanGenuchtenSaturationDerivative(tp, bt, h, npf%uzr%uzr_alpha(n), npf%uzr%uzr_beta(n),npf%uzr%uzr_sr(n))
         else
           derv = sQuadraticSaturationDerivative(tp, bt, h)
         end if
@@ -526,11 +529,12 @@ contains
   !!  specific storage and specific yield storage.
   !!
   !<
-  subroutine sto_cq(this, flowja, hnew, hold)
+  subroutine sto_cq(this, flowja, hnew, hold, npf)
     ! -- modules
     use TdisModule, only: delt
     ! -- dummy variables
     class(GwfStoType) :: this !< GwfStoType object
+    Type(GwfNpfType) :: npf
     real(DP), dimension(:), contiguous, intent(inout) :: flowja !< connection flows
     real(DP), dimension(:), contiguous, intent(in) :: hnew !< current head
     real(DP), dimension(:), contiguous, intent(in) :: hold !< previous head
@@ -575,9 +579,9 @@ contains
         !
         ! -- aquifer saturation
         ! -- if UZR then calculate the vanGenuchten
-        if (this%npf%inuzr /= 0) then
-          snold = svanGenuchtenSaturation(tp, bt, hold(n), this%uzr%uzr_alpha(n), this%uzr%uzr_beta(n),this%uzr%uzr_sr(n))
-          snnew = svanGenuchtenSaturation(tp, bt, hnew(n), this%uzr%uzr_alpha(n), this%uzr%uzr_beta(n),this%uzr%uzr_sr(n))
+        if (npf%inuzr /= 0) then
+            snold = svanGenuchtenSaturation(tp, bt, hold(n), npf%uzr%uzr_alpha(n), npf%uzr%uzr_beta(n),npf%uzr%uzr_sr(n))
+            snnew = svanGenuchtenSaturation(tp, bt, hnew(n), npf%uzr%uzr_alpha(n), npf%uzr%uzr_beta(n),npf%uzr%uzr_sr(n))
         else
           if (this%iconvert(n) == 0) then
               snold = DONE

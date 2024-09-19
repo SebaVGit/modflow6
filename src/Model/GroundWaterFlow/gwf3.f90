@@ -529,7 +529,7 @@ contains
     ! -- storage
     if (this%insto > 0) then
       call this%sto%sto_fc(kiter, this%xold, this%x, matrix_sln, &
-                           this%idxglo, this%rhs)
+                           this%idxglo, this%rhs, this%npf)
     end if
     ! -- skeletal storage, compaction, and land subsidence
     if (this%incsub > 0) then
@@ -563,7 +563,7 @@ contains
     if (this%insto > 0) then
       if (inwtsto /= 0) then
         call this%sto%sto_fn(kiter, this%xold, this%x, matrix_sln, &
-                             this%idxglo, this%rhs)
+                             this%idxglo, this%rhs, this%npf)
       end if
     end if
     !
@@ -811,7 +811,7 @@ contains
     if (this%inbuy > 0) call this%buy%buy_cq(this%x, this%flowja)
     if (this%inhfb > 0) call this%hfb%hfb_cq(this%x, this%flowja)
     if (this%ingnc > 0) call this%gnc%gnc_cq(this%flowja)
-    if (this%insto > 0) call this%sto%sto_cq(this%flowja, this%x, this%xold)
+    if (this%insto > 0) call this%sto%sto_cq(this%flowja, this%x, this%xold, this%npf)
     if (this%incsub > 0) call this%csub%csub_cq(this%dis%nodes, this%x, &
                                                 this%xold, isuppress_output, &
                                                 this%flowja)
