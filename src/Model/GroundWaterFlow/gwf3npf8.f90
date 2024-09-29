@@ -686,7 +686,7 @@ contains
           ! work on upper triangle
           if (m < n) cycle
           if (this%dis%con%ihc(this%dis%con%jas(ii)) == 0 .and. &
-              this%ivarcv == 0) then
+              this%ivarcv == 0 .and. this%inuzr == 0) then
             !call this%vcond(n,m,hnew(n),hnew(m),ii,cond)
             ! do nothing
           else
@@ -856,9 +856,9 @@ contains
           m = this%dis%con%ja(ipos)
           if (m < n) cycle
           if (this%inuzr /= 0) then
-              call this%qcalc(n, m, hnew(n), hnew(m), ipos, qnm)
-          else
               call this%uzrqcalc(n, m, hnew(n), hnew(m), ipos, qnm)
+          else
+              call this%qcalc(n, m, hnew(n), hnew(m), ipos, qnm)
           end if
           flowja(ipos) = qnm
           flowja(this%dis%con%isym(ipos)) = -qnm
