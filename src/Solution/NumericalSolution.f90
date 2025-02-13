@@ -2542,7 +2542,7 @@ contains
     ! -- save rhs, amat to a file
     !    to enable set itestmat to 1 and recompile
     !-------------------------------------------------------
-    itestmat = 1
+    itestmat = 0
     if (itestmat == 1) then
       write (fname, fmtfname) this%id, kper, kstp, kiter
       print *, 'Saving amat to: ', trim(adjustl(fname))
